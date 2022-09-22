@@ -28,23 +28,7 @@ public class SessionFactory {
                 .build();
     }
 
-    public static CqlSession build(URL scb, String clientID, String secret) {
-        return CqlSession
-                .builder()
-                .withCloudSecureConnectBundle(scb)
-                .withAuthCredentials(clientID, secret)
-                .build();
-    }
-
     public static CqlSession build(Path scb, String clientID, String secret) {
-        return CqlSession
-                .builder()
-                .withCloudSecureConnectBundle(scb)
-                .withAuthCredentials(clientID, secret)
-                .build();
-    }
-
-    public static CqlSession build(InputStream scb, String clientID, String secret) {
         return CqlSession
                 .builder()
                 .withCloudSecureConnectBundle(scb)

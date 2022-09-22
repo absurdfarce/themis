@@ -6,6 +6,9 @@ import com.datastax.themis.session.SessionFactory;
 import java.nio.file.Path;
 import java.util.Objects;
 
+/**
+ * A {@link Cluster} object representing a Cassandra instance managed by Astra.
+ */
 public class AstraCluster extends AbstractCluster {
 
     private final Path scb;

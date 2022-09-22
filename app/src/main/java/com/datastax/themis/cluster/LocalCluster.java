@@ -6,6 +6,9 @@ import com.datastax.themis.session.SessionFactory;
 import java.net.InetAddress;
 import java.util.Objects;
 
+/**
+ * A {@link Cluster} object representing a local Cassandra instance.
+ */
 public class LocalCluster extends AbstractCluster {
 
     private final String localDc;
