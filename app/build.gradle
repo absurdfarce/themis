@@ -23,7 +23,7 @@ dependencies {
 }
 
 application {
-    mainClass = 'com.datastax.themis.cli.ThemisCLI'
+    mainClass = 'com.datastax.themis.cli.ThemisCli'
 }
 
 run {
