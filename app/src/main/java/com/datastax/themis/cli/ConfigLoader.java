@@ -5,6 +5,7 @@ import com.datastax.themis.cluster.Cluster;
 import com.datastax.themis.cluster.ClusterName;
 import com.datastax.themis.cluster.LocalCluster;
 import com.datastax.themis.config.ConfigException;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import org.yaml.snakeyaml.Yaml;
@@ -49,14 +50,18 @@ public class ConfigLoader {
         return buildClusters(data);
     }
 
-    private static Map<ClusterName, Cluster> buildClusters(Map<String,Map<String,String>> data)
+    private static Map<ClusterName, Cluster> buildClusters(Map<String,Map<String,String>> config)
     throws ConfigException {
+
+        ImmutableMap<String,Map<String,String>> data = normalizeConfigMap(config);
+
         Map<ClusterName, Cluster> rv = Maps.newHashMap();
         for (ClusterName key : ClusterName.values()) {
-            if (! data.containsKey(key.name())) {
-                throw new ConfigException(String.format("Config must contain top-level key %s", key.name()));
+            String keyName = key.name();
+            if (! data.containsKey(keyName)) {
+                throw new ConfigException(String.format("Config must contain top-level key %s", keyName));
             }
-            rv.put(key, buildCluster(data.get(key)));
+            rv.put(key, buildCluster(normalizeConfigMap(data.get(keyName))));
         }
         return rv;
     }
@@ -94,7 +99,7 @@ public class ConfigLoader {
         return new AstraCluster(scb, clientId, secret);
     }
 
-    private static LocalCluster buildLocalCluster(Map<String, String> data)
+    private static LocalCluster buildLocalCluster(Map<String, ?> data)
     throws ConfigException {
 
         String localDc = getConfigString(data, LocalKeys.LOCALDC.name(), "Local config contains entry for local DC but it is empty");
@@ -106,23 +111,35 @@ public class ConfigLoader {
             throw new ConfigException(String.format("Exception converting address entry into an InetAddress: %s", addressStr), uhe);
         }
 
-        String portStr = getConfigString(data, LocalKeys.PORT.name(), "Local config contains entry for port but it is empty");
-        int port = -1;
-        try { port = Integer.parseInt(portStr); }
-        catch (NumberFormatException nfe) {
-            throw new ConfigException(String.format("Exception converting port entry into an integer: %s", portStr), nfe);
+        /* snakeyaml automatically converts discovered integer strings to ints by default */
+        Object portObj = data.get(LocalKeys.PORT.name());
+        if (! (portObj instanceof Integer)) {
+            throw new ConfigException(String.format("Local config contains entry for port but it is of type %s", portObj.getClass()));
         }
+        int port = ((Integer)portObj).intValue();
 
         return new LocalCluster(localDc, address, port);
     }
 
-    private static String getConfigString(Map<String, String> data, String key, String emptyMsg)
+    private static String getConfigString(Map<String, ?> data, String key, String emptyMsg)
     throws ConfigException {
 
-        String val = data.get(key);
-        if (val.isEmpty()) {
+        Object val = data.get(key);
+        if (! (val instanceof String)) {
+            throw new ConfigException(String.format("Expected config value with key %s to be a String, instead found type %s", key, val.getClass()));
+        }
+        String rv = val.toString();
+        if (rv.isEmpty()) {
             throw new ConfigException(emptyMsg);
         }
-        return val;
+        return rv;
+    }
+
+    /**
+     * Normalize a Map<String,T> to something that plays nicely with the various enums.  Really this is just about making sure the
+     * keys are capitalized.
+     */
+    private static <T> ImmutableMap<String, T> normalizeConfigMap(Map<String, T> input) {
+        return input.entrySet().stream().collect(ImmutableMap.toImmutableMap(e -> e.getKey().toUpperCase(), e -> e.getValue()));
     }
 }
