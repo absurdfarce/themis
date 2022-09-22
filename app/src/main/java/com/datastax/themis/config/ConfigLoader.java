@@ -1,4 +1,4 @@
-package com.datastax.themis.cli;
+package com.datastax.themis.config;
 
 import com.datastax.themis.cluster.AstraCluster;
 import com.datastax.themis.cluster.Cluster;

@@ -3,6 +3,7 @@ package com.datastax.themis.cli;
 import com.datastax.themis.cluster.Cluster;
 import com.datastax.themis.cluster.ClusterName;
 import com.datastax.themis.config.ConfigException;
+import com.datastax.themis.config.ConfigLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
