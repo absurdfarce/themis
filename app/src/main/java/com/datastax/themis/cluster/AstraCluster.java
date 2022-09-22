@@ -1,7 +1,7 @@
-package com.datastax.zdm.validate.cluster;
+package com.datastax.themis.cluster;
 
 import com.datastax.oss.driver.api.core.CqlSession;
-import com.datastax.zdm.validate.session.SessionFactory;
+import com.datastax.themis.session.SessionFactory;
 
 import java.nio.file.Path;
 import java.util.Objects;

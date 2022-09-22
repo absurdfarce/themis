@@ -1,4 +1,4 @@
-package com.datastax.zdm.validate.cluster;
+package com.datastax.themis.cluster;
 
 import com.google.common.base.Preconditions;
 

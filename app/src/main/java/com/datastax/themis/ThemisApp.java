@@ -1,15 +1,15 @@
-package com.datastax.zdm.validate;
+package com.datastax.themis;
 
-import com.datastax.zdm.validate.cluster.Cluster;
+import com.datastax.themis.cluster.Cluster;
 import com.google.common.base.Preconditions;
 
-public class ValidatorApp {
+public class ThemisApp {
 
     private final Cluster origin;
     private final Cluster target;
     private final Cluster proxy;
 
-    private ValidatorApp(Cluster origin, Cluster target, Cluster proxy) {
+    private ThemisApp(Cluster origin, Cluster target, Cluster proxy) {
         this.origin = origin;
         this.target = target;
         this.proxy = proxy;
@@ -44,9 +44,9 @@ public class ValidatorApp {
             Preconditions.checkNotNull(this.proxy);
         }
 
-        public ValidatorApp build() {
+        public ThemisApp build() {
             validate();
-            return new ValidatorApp(this.origin, this.target, this.proxy);
+            return new ThemisApp(this.origin, this.target, this.proxy);
         }
     }
 }

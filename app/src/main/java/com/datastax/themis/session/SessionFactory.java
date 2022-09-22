@@ -1,4 +1,4 @@
-package com.datastax.zdm.validate.session;
+package com.datastax.themis.session;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.google.common.collect.Lists;
