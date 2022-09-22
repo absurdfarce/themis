@@ -6,25 +6,23 @@ import com.datastax.themis.session.SessionFactory;
 import java.nio.file.Path;
 import java.util.Objects;
 
-public class AstraCluster implements Cluster {
+public class AstraCluster extends AbstractCluster {
 
     private final Path scb;
     private final String clientID;
     private final String secret;
-
-    private CqlSession cql;
 
     public AstraCluster(Path scb, String clientID, String secret) {
 
         this.scb = scb;
         this.clientID = clientID;
         this.secret = secret;
-
-        this.cql = SessionFactory.build(scb, clientID, secret);
     }
 
     @Override
-    public boolean isAstra() { return true; }
+    public CqlSession buildSession() {
+        return SessionFactory.build(scb, clientID, secret);
+    }
 
     @Override
     public boolean createSchema() {

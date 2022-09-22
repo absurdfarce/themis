@@ -6,25 +6,23 @@ import com.datastax.themis.session.SessionFactory;
 import java.net.InetAddress;
 import java.util.Objects;
 
-public class LocalCluster implements Cluster {
+public class LocalCluster extends AbstractCluster {
 
     private final String localDc;
     private final InetAddress address;
     private final int port;
-
-    private CqlSession cql;
 
     public LocalCluster(String localDc, InetAddress address, int port) {
 
         this.localDc = localDc;
         this.address = address;
         this.port = port;
-
-        this.cql = SessionFactory.build(localDc, address, port);
     }
 
     @Override
-    public boolean isLocal() { return true; }
+    public CqlSession buildSession() {
+        return SessionFactory.build(localDc, address, port);
+    }
 
     @Override
     public boolean createSchema() {
