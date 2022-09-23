@@ -4,7 +4,6 @@ import com.datastax.themis.ThemisException;
 import com.datastax.themis.cluster.Cluster;
 import com.datastax.themis.cluster.DefaultCluster;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.InputStream;
@@ -25,17 +24,17 @@ public class ConfigLoader {
 
         ImmutableMap<ClusterName, Map<String,?>> data = convertConfigMap(config);
 
-        Map<ClusterName, Cluster> rv = Maps.newHashMap();
+        ImmutableMap.Builder<ClusterName, Cluster> rvBuilder = ImmutableMap.builder();
         for (ClusterName name : ClusterName.values()) {
             if (! data.containsKey(name)) {
                 throw new ThemisException(String.format("Config must contain top-level key %s", name));
             }
-            rv.put(name,
+            rvBuilder.put(name,
                     new DefaultCluster(
                             name.name(),
                             ClusterConfig.buildFromConfig(name, convertClusterMap(data.get(name)))));
         }
-        return ImmutableMap.copyOf(rv);
+        return rvBuilder.build();
     }
 
     private static <T> ImmutableMap<ClusterName, T> convertConfigMap(Map<String, T> input) {

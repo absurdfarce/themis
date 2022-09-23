@@ -1,7 +1,6 @@
 package com.datastax.themis.cluster;
 
 import com.datastax.oss.driver.api.core.CqlSession;
-import com.datastax.themis.ThemisException;
 import com.datastax.themis.config.ClusterConfig;
 import com.datastax.themis.session.SessionFactory;
 
@@ -20,7 +19,7 @@ public class DefaultCluster implements Cluster {
     }
 
     @Override
-    public String getName() { return this.name; }
+    public boolean isAstra() { return !this.config.getScb().isEmpty(); }
 
     @Override
     public CqlSession getSession() {
@@ -45,6 +44,4 @@ public class DefaultCluster implements Cluster {
                     this.config.getPassword());
         }
     }
-
-    private boolean isAstra() { return !this.config.getScb().isEmpty(); }
 }
