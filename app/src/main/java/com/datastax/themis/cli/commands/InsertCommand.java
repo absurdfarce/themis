@@ -30,6 +30,15 @@ public class InsertCommand implements Callable<Integer> {
 
     private final ImmutableMap<ClusterName, Cluster> clusters;
 
+    /* Safe to re-use only because we're resetting values on the same columns each time and not alterting anything more substantive */
+    private final InsertInto insertBuilder =
+            QueryBuilder.insertInto(CqlIdentifier.fromCql("themis"), CqlIdentifier.fromCql("keyvalue"));
+
+    private final Statement maxQueryStmt =
+            QueryBuilder.selectFrom(CqlIdentifier.fromCql("themis"), CqlIdentifier.fromCql("keyvalue"))
+            .function("max", Selector.column("key"))
+            .build();
+
     public InsertCommand(ImmutableMap<ClusterName, Cluster> clusters) {
         this.clusters = clusters;
     }
@@ -37,34 +46,29 @@ public class InsertCommand implements Callable<Integer> {
     @Override
     public Integer call() throws Exception {
 
-        Statement maxQuery = QueryBuilder.selectFrom(CqlIdentifier.fromCql("themis"), CqlIdentifier.fromCql("keyvalue"))
-                .function("max", Selector.column("key"))
-                .build();
-        InsertInto insertBuilder = QueryBuilder.insertInto(CqlIdentifier.fromCql("themis"), CqlIdentifier.fromCql("keyvalue"));
-
         if (origin) {
             System.out.println(String.format("Inserting %d new rows into origin", this.count));
-            updateCluster(ClusterName.ORIGIN, maxQuery, insertBuilder);
+            insertIntoCluster(ClusterName.ORIGIN);
         }
         if (target) {
             System.out.println(String.format("Inserting %d new rows into target", this.count));
-            updateCluster(ClusterName.TARGET, maxQuery, insertBuilder);
+            insertIntoCluster(ClusterName.TARGET);
         }
         if (proxy) {
             System.out.println(String.format("Inserting %d new rows into proxy", this.count));
-            updateCluster(ClusterName.PROXY, maxQuery, insertBuilder);
+            insertIntoCluster(ClusterName.PROXY);
         }
         return 0;
     }
 
-    private void updateCluster(ClusterName name, Statement maxQuery, InsertInto insertBuilder) {
+    private void insertIntoCluster(ClusterName name) {
 
-        ResultSet maxRs = this.clusters.get(name).getSession().execute(maxQuery);
+        ResultSet maxRs = this.clusters.get(name).getSession().execute(this.maxQueryStmt);
         int currentMax = maxRs.iterator().next().getInt(0);
 
         for (int i = currentMax + 1; i <= currentMax + this.count; ++i) {
             this.clusters.get(name).getSession().execute(
-                    insertBuilder
+                    this.insertBuilder
                             .value("key", QueryBuilder.literal(i))
                             .value("value",QueryBuilder.literal("some text"))
                             .value("app", QueryBuilder.literal("themis"))
