@@ -3,7 +3,9 @@ package com.datastax.themis.cli.commands;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.Statement;
+import com.datastax.oss.driver.api.core.metadata.schema.ClusteringOrder;
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
+import com.datastax.oss.driver.api.querybuilder.relation.Relation;
 import com.datastax.themis.cluster.Cluster;
 import com.datastax.themis.config.ClusterName;
 import com.google.common.collect.ImmutableMap;
@@ -35,28 +37,28 @@ public class QueryCommand implements Callable<Integer> {
     @Override
     public Integer call() throws Exception {
 
-        Statement stmt = buildStatement();
+        Statement insertStmt = QueryBuilder.selectFrom(CqlIdentifier.fromCql("themis"), CqlIdentifier.fromCql("keyvalue"))
+                .all()
+                .where(Relation.column("app").isEqualTo(QueryBuilder.literal("themis")))
+                .orderBy("key", ClusteringOrder.DESC)
+                .limit(this.limit)
+                .build();
         if (origin) {
             System.out.println("Querying origin");
-            queryServer(ClusterName.ORIGIN, stmt);
+            queryCluster(ClusterName.ORIGIN, insertStmt);
         }
         if (target) {
             System.out.println("Querying target");
-            queryServer(ClusterName.TARGET, stmt);
+            queryCluster(ClusterName.TARGET, insertStmt);
         }
         if (proxy) {
             System.out.println("Querying proxy");
-            queryServer(ClusterName.PROXY, stmt);
+            queryCluster(ClusterName.PROXY, insertStmt);
         }
         return 0;
     }
 
-    private Statement buildStatement() {
-
-        return QueryBuilder.selectFrom(CqlIdentifier.fromCql("themis"), CqlIdentifier.fromCql("keyvalue")).all().build();
-    }
-
-    private void queryServer(ClusterName name, Statement stmt) {
+    private void queryCluster(ClusterName name, Statement stmt) {
 
         for (Row row : this.clusters.get(name).getSession().execute(stmt)) {
             System.out.println(String.format("%d => %s", row.getInt("key"), row.getString("value")));
