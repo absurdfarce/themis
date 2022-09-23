@@ -11,11 +11,11 @@ import java.util.Objects;
  */
 public class LocalCluster extends AbstractCluster {
 
-    private final String localDc;
     private final InetAddress address;
     private final int port;
+    private final String localDc;
 
-    public LocalCluster(String localDc, InetAddress address, int port) {
+    public LocalCluster(InetAddress address, int port, String localDc) {
 
         this.localDc = localDc;
         this.address = address;
@@ -24,12 +24,7 @@ public class LocalCluster extends AbstractCluster {
 
     @Override
     public CqlSession buildSession() {
-        return SessionFactory.build(localDc, address, port);
-    }
-
-    @Override
-    public boolean createSchema() {
-        return false;
+        return SessionFactory.build(address, port, localDc);
     }
 
     @Override

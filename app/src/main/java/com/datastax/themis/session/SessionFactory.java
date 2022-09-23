@@ -1,6 +1,7 @@
 package com.datastax.themis.session;
 
 import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.auth.ProgrammaticPlainTextAuthProvider;
 import com.google.common.collect.Lists;
 
 import java.io.InputStream;
@@ -12,18 +13,10 @@ import java.util.Collection;
 
 public class SessionFactory {
 
-    public static CqlSession build(String localDc, InetAddress contactAddr, int contactPort) {
-        return build(localDc, new InetSocketAddress(contactAddr, contactPort));
-    }
-
-    public static CqlSession build(String localDc, InetSocketAddress contactPoint) {
-        return build(localDc, Lists.newArrayList(contactPoint));
-    }
-
-    public static CqlSession build(String localDc, Collection<InetSocketAddress> contactPoints) {
+    public static CqlSession build(InetAddress address, int port, String localDc) {
         return CqlSession
                 .builder()
-                .addContactPoints(contactPoints)
+                .addContactPoint(new InetSocketAddress(address, port))
                 .withLocalDatacenter(localDc)
                 .build();
     }
@@ -33,6 +26,15 @@ public class SessionFactory {
                 .builder()
                 .withCloudSecureConnectBundle(scb)
                 .withAuthCredentials(clientID, secret)
+                .build();
+    }
+
+    public static CqlSession build(InetAddress address, int port, String localDc, String clientID, String secret) {
+        return CqlSession
+                .builder()
+                .addContactPoint(new InetSocketAddress(address, port))
+                .withAuthCredentials(clientID, secret)
+                .withLocalDatacenter(localDc)
                 .build();
     }
 }

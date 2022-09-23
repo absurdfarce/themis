@@ -1,9 +1,6 @@
 package com.datastax.themis.config;
 
-import com.datastax.themis.cluster.AstraCluster;
-import com.datastax.themis.cluster.Cluster;
-import com.datastax.themis.cluster.ClusterName;
-import com.datastax.themis.cluster.LocalCluster;
+import com.datastax.themis.cluster.*;
 import com.datastax.themis.config.ConfigException;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -27,20 +24,22 @@ import java.util.stream.Collectors;
  */
 public class ConfigLoader {
 
-    private enum LocalKeys {
+    private enum ClusterKeys {
+
         ADDRESS,
         PORT,
-        LOCALDC
-    }
-
-    private enum AstraKeys {
+        LOCALDC,
         SCB,
         CLIENTID,
         SECRET
     }
 
-    private static final Set<String> localKeys = ImmutableSet.copyOf(Arrays.stream(LocalKeys.values()).map(Enum::name).collect(Collectors.toSet()));
-    private static final Set<String> astraKeys = ImmutableSet.copyOf(Arrays.stream(AstraKeys.values()).map(Enum::name).collect(Collectors.toSet()));
+    private static final Set<String> localKeys =
+            ImmutableSet.of(ClusterKeys.ADDRESS.name(), ClusterKeys.PORT.name(), ClusterKeys.LOCALDC.name());
+    private static final Set<String> astraKeys =
+            ImmutableSet.of(ClusterKeys.SCB.name(), ClusterKeys.CLIENTID.name(), ClusterKeys.SECRET.name());
+    private static final Set<String> proxyKeys =
+            ImmutableSet.of(ClusterKeys.ADDRESS.name(), ClusterKeys.PORT.name(), ClusterKeys.CLIENTID.name(), ClusterKeys.SECRET.name());
 
     public static ImmutableMap<ClusterName, Cluster> load(InputStream in)
     throws ConfigException {
@@ -70,7 +69,11 @@ public class ConfigLoader {
     throws ConfigException {
 
         Set<String> keys = data.keySet();
-        if (isAstraClusterConfig(keys)) {
+        /* Note that we have to check for proxy configs first here (since proxy configs are a superset of local configs) */
+        if (isProxyClusterConfig(keys)) {
+            return buildProxyCluster(data);
+        }
+        else if (isAstraClusterConfig(keys)) {
             return buildAstraCluster(data);
         }
         else if (isLocalClusterConfig(keys)) {
@@ -87,14 +90,18 @@ public class ConfigLoader {
         return keys.containsAll(localKeys);
     }
 
+    private static boolean isProxyClusterConfig(Set<String> keys) {
+        return keys.containsAll(proxyKeys);
+    }
+
     private static AstraCluster buildAstraCluster(Map<String, String> data)
     throws ConfigException{
 
-        String scbPath = getConfigString(data, AstraKeys.SCB.name(), "Astra config contains entry for secure connect bundle but it is empty");
+        String scbPath = getConfigString(data, ClusterKeys.SCB.name(), "Astra config contains entry for secure connect bundle but it is empty");
         Path scb = Paths.get(scbPath);
 
-        String clientId = getConfigString(data, AstraKeys.CLIENTID.name(), "Astra config contains entry for client ID but it is empty");
-        String secret = getConfigString(data, AstraKeys.SECRET.name(), "Astra config contains entry for secret but it is empty");
+        String clientId = getConfigString(data, ClusterKeys.CLIENTID.name(), "Astra config contains entry for client ID but it is empty");
+        String secret = getConfigString(data, ClusterKeys.SECRET.name(), "Astra config contains entry for secret but it is empty");
 
         return new AstraCluster(scb, clientId, secret);
     }
@@ -102,9 +109,7 @@ public class ConfigLoader {
     private static LocalCluster buildLocalCluster(Map<String, ?> data)
     throws ConfigException {
 
-        String localDc = getConfigString(data, LocalKeys.LOCALDC.name(), "Local config contains entry for local DC but it is empty");
-
-        String addressStr = getConfigString(data, LocalKeys.ADDRESS.name(), "Local config contains entry for address but it is empty");
+        String addressStr = getConfigString(data, ClusterKeys.ADDRESS.name(), "Local config contains entry for address but it is empty");
         InetAddress address;
         try { address = InetAddress.getByName(addressStr); }
         catch (UnknownHostException uhe) {
@@ -112,13 +117,40 @@ public class ConfigLoader {
         }
 
         /* snakeyaml automatically converts discovered integer strings to ints by default */
-        Object portObj = data.get(LocalKeys.PORT.name());
+        Object portObj = data.get(ClusterKeys.PORT.name());
         if (! (portObj instanceof Integer)) {
             throw new ConfigException(String.format("Local config contains entry for port but it is of type %s", portObj.getClass()));
         }
         int port = ((Integer)portObj).intValue();
 
-        return new LocalCluster(localDc, address, port);
+        String localDc = getConfigString(data, ClusterKeys.LOCALDC.name(), "Local config contains entry for local DC but it is empty");
+
+        return new LocalCluster(address, port, localDc);
+    }
+
+    private static ProxyCluster buildProxyCluster(Map<String, ?> data)
+            throws ConfigException {
+
+        String addressStr = getConfigString(data, ClusterKeys.ADDRESS.name(), "Proxy config contains entry for address but it is empty");
+        InetAddress address;
+        try { address = InetAddress.getByName(addressStr); }
+        catch (UnknownHostException uhe) {
+            throw new ConfigException(String.format("Exception converting address entry into an InetAddress: %s", addressStr), uhe);
+        }
+
+        /* snakeyaml automatically converts discovered integer strings to ints by default */
+        Object portObj = data.get(ClusterKeys.PORT.name());
+        if (! (portObj instanceof Integer)) {
+            throw new ConfigException(String.format("Proxy config contains entry for port but it is of type %s", portObj.getClass()));
+        }
+        int port = ((Integer)portObj).intValue();
+
+        String localDc = getConfigString(data, ClusterKeys.LOCALDC.name(), "Proxy config contains entry for local DC but it is empty");
+
+        String clientId = getConfigString(data, ClusterKeys.CLIENTID.name(), "Proxy config contains entry for client ID but it is empty");
+        String secret = getConfigString(data, ClusterKeys.SECRET.name(), "Proxy config contains entry for secret but it is empty");
+
+        return new ProxyCluster(address, port, localDc, clientId, secret);
     }
 
     private static String getConfigString(Map<String, ?> data, String key, String emptyMsg)

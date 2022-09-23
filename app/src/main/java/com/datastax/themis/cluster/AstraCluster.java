@@ -28,11 +28,6 @@ public class AstraCluster extends AbstractCluster {
     }
 
     @Override
-    public boolean createSchema() {
-        return false;
-    }
-
-    @Override
     public String toString() {
         return "AstraCluster{" +
                 "scb=" + scb +
