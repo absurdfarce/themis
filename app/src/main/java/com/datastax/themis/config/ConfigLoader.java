@@ -42,7 +42,7 @@ public class ConfigLoader {
     private static final Set<String> localKeys = ImmutableSet.copyOf(Arrays.stream(LocalKeys.values()).map(Enum::name).collect(Collectors.toSet()));
     private static final Set<String> astraKeys = ImmutableSet.copyOf(Arrays.stream(AstraKeys.values()).map(Enum::name).collect(Collectors.toSet()));
 
-    public static Map<ClusterName, Cluster> load(InputStream in)
+    public static ImmutableMap<ClusterName, Cluster> load(InputStream in)
     throws ConfigException {
 
         Yaml yaml = new Yaml();
@@ -50,7 +50,7 @@ public class ConfigLoader {
         return buildClusters(data);
     }
 
-    private static Map<ClusterName, Cluster> buildClusters(Map<String,Map<String,String>> config)
+    private static ImmutableMap<ClusterName, Cluster> buildClusters(Map<String,Map<String,String>> config)
     throws ConfigException {
 
         ImmutableMap<String,Map<String,String>> data = normalizeConfigMap(config);
@@ -63,7 +63,7 @@ public class ConfigLoader {
             }
             rv.put(key, buildCluster(normalizeConfigMap(data.get(keyName))));
         }
-        return rv;
+        return ImmutableMap.copyOf(rv);
     }
 
     private static Cluster buildCluster(Map<String,String> data)

@@ -1,16 +1,22 @@
 package com.datastax.themis.cli;
 
+import com.datastax.themis.cli.commands.InsertCommand;
+import com.datastax.themis.cli.commands.QueryCommand;
+import com.datastax.themis.cli.commands.SchemaCommand;
 import com.datastax.themis.cluster.Cluster;
 import com.datastax.themis.cluster.ClusterName;
 import com.datastax.themis.config.ConfigException;
 import com.datastax.themis.config.ConfigLoader;
+import com.google.common.collect.ImmutableMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import picocli.CommandLine;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.util.Map;
+import java.util.concurrent.Callable;
 
 public class ThemisCli {
 
@@ -18,7 +24,7 @@ public class ThemisCli {
 
     public static final String THEMIS_CONFIG = ".themis.yaml";
 
-    private static Map<ClusterName, Cluster> loadConfig() {
+    private static ImmutableMap<ClusterName, Cluster> loadConfig() {
         File configFile = new File(System.getProperty("user.home"), THEMIS_CONFIG);
         if (! configFile.exists()) {
             System.out.println(String.format("Expected Themis config %s doesn't exist", configFile.getAbsolutePath()));
@@ -53,7 +59,23 @@ public class ThemisCli {
 
     public static void main(String[] args) {
 
-        Map<?,?> config = loadConfig();
-        System.out.println(String.format("Loaded config file: %s", config));
+        ImmutableMap<ClusterName, Cluster> clusters = loadConfig();
+
+        CommandLine cli = new CommandLine(new ThemisRoot())
+                .addSubcommand("query", new QueryCommand(clusters))
+                .addSubcommand("insert", new InsertCommand(clusters))
+                .addSubcommand("schema", new SchemaCommand(clusters));
+        int exitCode = cli.execute(args);
+        System.exit(exitCode);
+    }
+
+    /* Top-level Callable for pioccli.  Doesn't really do much by itself */
+    @CommandLine.Command(name="themis")
+    static class ThemisRoot implements Callable<Integer> {
+
+        @Override
+        public Integer call() throws Exception {
+            return 0;
+        }
     }
 }
