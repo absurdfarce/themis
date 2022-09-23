@@ -1,20 +1,24 @@
 package com.datastax.themis.cli.commands;
 
-import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.Statement;
 import com.datastax.oss.driver.api.core.metadata.schema.ClusteringOrder;
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
 import com.datastax.oss.driver.api.querybuilder.relation.Relation;
+import com.datastax.themis.Constants;
 import com.datastax.themis.cluster.Cluster;
 import com.datastax.themis.config.ClusterName;
 import com.google.common.collect.ImmutableMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
 import java.util.concurrent.Callable;
 
 @CommandLine.Command()
 public class QueryCommand implements Callable<Integer> {
+
+    private static Logger logger = LoggerFactory.getLogger(QueryCommand.class);
 
     @CommandLine.Option(names = {"-o", "--origin"}, description = "Execute the query against the origin")
     boolean origin;
@@ -37,31 +41,37 @@ public class QueryCommand implements Callable<Integer> {
     @Override
     public Integer call() throws Exception {
 
-        Statement insertStmt = QueryBuilder.selectFrom(CqlIdentifier.fromCql("themis"), CqlIdentifier.fromCql("keyvalue"))
+        /* Note that (unlike most of the other commands) this Statement relies on values passed in via picocli... so we
+        * can't declare it as a constant field of this class */
+        Statement insertStmt = QueryBuilder.selectFrom(Constants.DEFAULT_KEYSPACE, Constants.DEFAULT_TABLE)
                 .all()
                 .where(Relation.column("app").isEqualTo(QueryBuilder.literal("themis")))
                 .orderBy("key", ClusteringOrder.DESC)
                 .limit(this.limit)
                 .build();
-        if (origin) {
-            System.out.println("Querying origin");
+
+        if (origin)
             queryCluster(ClusterName.ORIGIN, insertStmt);
-        }
-        if (target) {
-            System.out.println("Querying target");
+        if (target)
             queryCluster(ClusterName.TARGET, insertStmt);
-        }
-        if (proxy) {
-            System.out.println("Querying proxy");
+        if (proxy)
             queryCluster(ClusterName.PROXY, insertStmt);
-        }
         return 0;
     }
 
-    private void queryCluster(ClusterName name, Statement stmt) {
+    private void queryCluster(ClusterName name, Statement insertStmt) {
 
-        for (Row row : this.clusters.get(name).getSession().execute(stmt)) {
-            System.out.println(String.format("%d => %s", row.getInt("key"), row.getString("value")));
+        System.out.println(String.format("Querying cluster %s", name));
+        try {
+
+            for (Row row : this.clusters.get(name).getSession().execute(insertStmt)) {
+                System.out.println(String.format("%d => %s", row.getInt("key"), row.getString("value")));
+            }
+        }
+        catch (Exception e) {
+            logger.error(String.format("Exception running query command for cluster %s", name), e);
+            System.out.println("Error executing query, consult the log for details");
+            System.exit(1);
         }
     }
 }
