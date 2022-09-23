@@ -1,11 +1,11 @@
 package com.datastax.themis.cli;
 
+import com.datastax.themis.ThemisException;
 import com.datastax.themis.cli.commands.InsertCommand;
 import com.datastax.themis.cli.commands.QueryCommand;
 import com.datastax.themis.cli.commands.SchemaCommand;
 import com.datastax.themis.cluster.Cluster;
-import com.datastax.themis.cluster.ClusterName;
-import com.datastax.themis.config.ConfigException;
+import com.datastax.themis.config.ClusterName;
 import com.datastax.themis.config.ConfigLoader;
 import com.google.common.collect.ImmutableMap;
 import org.slf4j.Logger;
@@ -15,12 +15,11 @@ import picocli.CommandLine;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.util.Map;
 import java.util.concurrent.Callable;
 
 public class ThemisCli {
 
-    private static Logger logger = LoggerFactory.getLogger(com.datastax.themis.cli.ThemisCli.class);
+    private static Logger logger = LoggerFactory.getLogger(ThemisCli.class);
 
     public static final String THEMIS_CONFIG = ".themis.yaml";
 
@@ -42,8 +41,8 @@ public class ThemisCli {
         try {
             return ConfigLoader.load(new FileInputStream(configFile));
         }
-        catch (ConfigException ce) {
-            logger.error("Exception processing YAML config", ce);
+        catch (ThemisException te) {
+            logger.error("Exception processing YAML config", te);
             System.out.println("YAML config could not be parsed, consult the log for details");
             System.exit(1);
         }

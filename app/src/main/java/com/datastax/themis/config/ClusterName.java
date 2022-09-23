@@ -1,4 +1,4 @@
-package com.datastax.themis.cluster;
+package com.datastax.themis.config;
 
 public enum ClusterName {
     ORIGIN,

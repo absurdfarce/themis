@@ -1,6 +1,7 @@
 package com.datastax.themis.cluster;
 
 import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.themis.ThemisException;
 
 /**
  * An object representing a Cassandra database on which our zdm proxy operates.
@@ -8,6 +9,8 @@ import com.datastax.oss.driver.api.core.CqlSession;
  * Note that the zdm endpoint itself is also represented by an instance of this class.
  */
 public interface Cluster {
+
+    public String getName();
 
     public CqlSession getSession();
 }

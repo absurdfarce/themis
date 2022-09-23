@@ -5,7 +5,7 @@ import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.Statement;
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
 import com.datastax.themis.cluster.Cluster;
-import com.datastax.themis.cluster.ClusterName;
+import com.datastax.themis.config.ClusterName;
 import com.google.common.collect.ImmutableMap;
 import picocli.CommandLine;
 

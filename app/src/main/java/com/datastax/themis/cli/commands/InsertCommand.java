@@ -1,7 +1,7 @@
 package com.datastax.themis.cli.commands;
 
 import com.datastax.themis.cluster.Cluster;
-import com.datastax.themis.cluster.ClusterName;
+import com.datastax.themis.config.ClusterName;
 import com.google.common.collect.ImmutableMap;
 import picocli.CommandLine;
 
