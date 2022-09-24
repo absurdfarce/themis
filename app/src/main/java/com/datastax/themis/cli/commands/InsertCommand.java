@@ -50,16 +50,17 @@ public class InsertCommand implements Callable<Integer> {
     @Override
     public Integer call() throws Exception {
 
+        boolean success = true;
         if (origin)
-            insertIntoCluster(ClusterName.ORIGIN);
+            success = success & insertIntoCluster(ClusterName.ORIGIN);
         if (target)
-            insertIntoCluster(ClusterName.TARGET);
+            success = success & insertIntoCluster(ClusterName.TARGET);
         if (proxy)
-            insertIntoCluster(ClusterName.PROXY);
-        return 0;
+            success = success & insertIntoCluster(ClusterName.PROXY);
+        return success ? 0 : 1;
     }
 
-    private void insertIntoCluster(ClusterName name) {
+    private boolean insertIntoCluster(ClusterName name) {
 
         System.out.println(String.format("Inserting %d new rows into cluster %s", this.count, name));
 
@@ -76,11 +77,13 @@ public class InsertCommand implements Callable<Integer> {
                                 .value("app", QueryBuilder.literal("themis"))
                                 .build());
             }
+
+            return true;
         }
         catch (Exception e) {
             logger.error(String.format("Exception running insert command for cluster %s", name), e);
             System.out.println("Error inserting records, consult the log for details");
-            System.exit(1);
+            return false;
         }
     }
 }

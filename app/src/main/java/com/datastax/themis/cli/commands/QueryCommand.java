@@ -50,16 +50,17 @@ public class QueryCommand implements Callable<Integer> {
                 .limit(this.limit)
                 .build();
 
+        boolean success = true;
         if (origin)
-            queryCluster(ClusterName.ORIGIN, insertStmt);
+            success = success & queryCluster(ClusterName.ORIGIN, insertStmt);
         if (target)
-            queryCluster(ClusterName.TARGET, insertStmt);
+            success = success & queryCluster(ClusterName.TARGET, insertStmt);
         if (proxy)
-            queryCluster(ClusterName.PROXY, insertStmt);
-        return 0;
+            success = success & queryCluster(ClusterName.PROXY, insertStmt);
+        return success ? 0 : 1;
     }
 
-    private void queryCluster(ClusterName name, Statement insertStmt) {
+    private boolean queryCluster(ClusterName name, Statement insertStmt) {
 
         System.out.println(String.format("Querying cluster %s", name));
         try {
@@ -67,11 +68,13 @@ public class QueryCommand implements Callable<Integer> {
             for (Row row : this.clusters.get(name).getSession().execute(insertStmt)) {
                 System.out.println(String.format("%d => %s", row.getInt("key"), row.getString("value")));
             }
+
+            return true;
         }
         catch (Exception e) {
             logger.error(String.format("Exception running query command for cluster %s", name), e);
             System.out.println("Error executing query, consult the log for details");
-            System.exit(1);
+            return false;
         }
     }
 }

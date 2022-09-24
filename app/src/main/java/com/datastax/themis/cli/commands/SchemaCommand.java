@@ -1,7 +1,10 @@
 package com.datastax.themis.cli.commands;
 
 import com.datastax.oss.driver.api.core.cql.Statement;
+import com.datastax.oss.driver.api.core.type.DataType;
+import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
+import com.datastax.oss.protocol.internal.ProtocolConstants;
 import com.datastax.themis.Constants;
 import com.datastax.themis.cluster.Cluster;
 import com.datastax.themis.config.ClusterName;
@@ -31,9 +34,13 @@ public class SchemaCommand implements Callable<Integer> {
                     .withSimpleStrategy(1)
                     .build();
 
-    //private final Statement tableCreateStmt =
-    //        SchemaBuilder.createTable(Constants.DEFAULT_KEYSPACE, Constants.DEFAULT_TABLE)
-    //                .ifNotExists()
+    private final Statement tableCreateStmt =
+            SchemaBuilder.createTable(Constants.DEFAULT_KEYSPACE, Constants.DEFAULT_TABLE)
+                    .ifNotExists()
+                    .withPartitionKey("app", DataTypes.TEXT)
+                    .withClusteringColumn("key", DataTypes.INT)
+                    .withColumn("value", DataTypes.TEXT)
+                    .build();
 
     public SchemaCommand(ImmutableMap<ClusterName, Cluster> clusters) {
         this.clusters = clusters;
@@ -42,14 +49,15 @@ public class SchemaCommand implements Callable<Integer> {
     @Override
     public Integer call() throws Exception {
 
+        boolean success = true;
         if (origin)
-            createSchemaOnCluster(ClusterName.ORIGIN);
+            success = success & createSchemaOnCluster(ClusterName.ORIGIN);
         if (target)
-            createSchemaOnCluster(ClusterName.TARGET);
-        return 0;
+            success = success & createSchemaOnCluster(ClusterName.TARGET);
+        return success ? 0 : 1;
     }
 
-    private void createSchemaOnCluster(ClusterName name) {
+    private boolean createSchemaOnCluster(ClusterName name) {
 
         System.out.println(String.format("Creating schema on cluster %s", name));
 
@@ -57,15 +65,18 @@ public class SchemaCommand implements Callable<Integer> {
 
             Cluster cluster = this.clusters.get(name);
             if (cluster.isAstra())
-                System.out.print(String.format("Cluster %s is an Astra cluster, skipping keyspace creation (Astra keyspaces must be created through the Astra UI)"));
+                System.out.println(String.format("Cluster %s is an Astra cluster, skipping keyspace creation (Astra keyspaces must be created through the Astra UI)", name));
             else
                 cluster.getSession().execute(keyspaceCreateStmt);
 
+            cluster.getSession().execute(tableCreateStmt);
+
+            return true;
         }
         catch (Exception e) {
             logger.error(String.format("Exception creating schema on cluster %s", name), e);
             System.out.println("Error creating schema, consult the log for details");
-            System.exit(1);
+            return false;
         }
     }
 }
