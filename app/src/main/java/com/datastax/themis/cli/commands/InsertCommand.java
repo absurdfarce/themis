@@ -4,6 +4,7 @@ import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Statement;
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
 import com.datastax.oss.driver.api.querybuilder.insert.InsertInto;
+import com.datastax.oss.driver.api.querybuilder.relation.Relation;
 import com.datastax.oss.driver.api.querybuilder.select.Selector;
 import com.datastax.themis.Constants;
 import com.datastax.themis.cluster.Cluster;
@@ -41,6 +42,7 @@ public class InsertCommand implements Callable<Integer> {
     private final Statement maxQueryStmt =
             QueryBuilder.selectFrom(Constants.DEFAULT_KEYSPACE, Constants.DEFAULT_TABLE)
             .function("max", Selector.column("key"))
+                    .where(Relation.column("app").isEqualTo(QueryBuilder.literal("themis")))
             .build();
 
     public InsertCommand(ImmutableMap<ClusterName, Cluster> clusters) {
