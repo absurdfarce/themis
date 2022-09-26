@@ -27,6 +27,9 @@ public class InsertCommand implements Callable<Integer> {
 
     private Random random = new Random(System.currentTimeMillis());
 
+    @CommandLine.Option(names = {"-h", "--help"}, usageHelp = true, description = "Show this help and exit")
+    boolean help;
+
     @CommandLine.Option(names = {"-o", "--origin"}, description = "Execute the insertion against the origin")
     boolean origin;
 

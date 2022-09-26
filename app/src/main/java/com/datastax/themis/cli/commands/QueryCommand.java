@@ -20,6 +20,9 @@ public class QueryCommand implements Callable<Integer> {
 
     private static final Logger logger = LoggerFactory.getLogger(QueryCommand.class);
 
+    @CommandLine.Option(names = {"-h", "--help"}, usageHelp = true, description = "Show this help and exit")
+    boolean help;
+
     @CommandLine.Option(names = {"-o", "--origin"}, description = "Execute the query against the origin")
     boolean origin;
 

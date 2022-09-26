@@ -1,10 +1,8 @@
 package com.datastax.themis.cli.commands;
 
 import com.datastax.oss.driver.api.core.cql.Statement;
-import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
-import com.datastax.oss.protocol.internal.ProtocolConstants;
 import com.datastax.themis.Constants;
 import com.datastax.themis.cluster.Cluster;
 import com.datastax.themis.config.ClusterName;
@@ -19,6 +17,9 @@ import java.util.concurrent.Callable;
 public class SchemaCommand implements Callable<Integer> {
 
     private static final Logger logger = LoggerFactory.getLogger(SchemaCommand.class);
+
+    @CommandLine.Option(names = {"-h", "--help"}, usageHelp = true, description = "Show this help and exit")
+    boolean help;
 
     @CommandLine.Option(names = {"-o", "--origin"}, description = "Create the schema on the origin")
     boolean origin;
