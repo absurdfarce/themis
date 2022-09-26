@@ -18,7 +18,7 @@ import java.util.concurrent.Callable;
 @CommandLine.Command()
 public class SchemaCommand implements Callable<Integer> {
 
-    private static Logger logger = LoggerFactory.getLogger(SchemaCommand.class);
+    private static final Logger logger = LoggerFactory.getLogger(SchemaCommand.class);
 
     @CommandLine.Option(names = {"-o", "--origin"}, description = "Create the schema on the origin")
     boolean origin;

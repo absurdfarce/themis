@@ -18,7 +18,7 @@ import java.util.concurrent.Callable;
 @CommandLine.Command()
 public class QueryCommand implements Callable<Integer> {
 
-    private static Logger logger = LoggerFactory.getLogger(QueryCommand.class);
+    private static final Logger logger = LoggerFactory.getLogger(QueryCommand.class);
 
     @CommandLine.Option(names = {"-o", "--origin"}, description = "Execute the query against the origin")
     boolean origin;

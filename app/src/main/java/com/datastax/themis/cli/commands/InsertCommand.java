@@ -14,12 +14,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
+import java.util.Random;
 import java.util.concurrent.Callable;
 
 @CommandLine.Command()
 public class InsertCommand implements Callable<Integer> {
 
-    private static Logger logger = LoggerFactory.getLogger(InsertCommand.class);
+    private static final Logger logger = LoggerFactory.getLogger(InsertCommand.class);
+
+    /* TODO: Could be made configurable if desired */
+    private static final int RANDOM_STRING_SIZE = 12;
+
+    private Random random = new Random(System.currentTimeMillis());
 
     @CommandLine.Option(names = {"-o", "--origin"}, description = "Execute the insertion against the origin")
     boolean origin;
@@ -62,6 +68,17 @@ public class InsertCommand implements Callable<Integer> {
         return success ? 0 : 1;
     }
 
+    private String buildRandomString(int length) {
+
+        /* Printable ASCII chars run from 33 through 126 (decimal) */
+        return this.random.ints(length, 33, 127)
+                .collect(
+                        StringBuilder::new,
+                        (sb,cp) -> sb.appendCodePoint(cp),
+                        StringBuilder::append)
+                .toString();
+    }
+
     private boolean insertIntoCluster(ClusterName name) {
 
         System.out.println(String.format("Inserting %d new rows into cluster %s", this.count, name));
@@ -75,7 +92,7 @@ public class InsertCommand implements Callable<Integer> {
                 this.clusters.get(name).getSession().execute(
                         this.insertBuilder
                                 .value("key", QueryBuilder.literal(i))
-                                .value("value",QueryBuilder.literal("some text"))
+                                .value("value",QueryBuilder.literal(buildRandomString(RANDOM_STRING_SIZE)))
                                 .value("app", QueryBuilder.literal("themis"))
                                 .build());
             }
