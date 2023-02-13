@@ -13,9 +13,9 @@ public abstract class AbstractCommand {
     @CommandLine.Option(names = {"-t", "--target"}, description = "Execute the operation against the target")
     boolean target;
 
-    @CommandLine.Option(names = {"-k", "--keyspace"}, description = "The keyspace this operation should use", defaultValue = "themis")
+    @CommandLine.Option(names = {"-k", "--keyspace"}, description = "The keyspace the operation should use", defaultValue = "themis")
     String keyspace;
 
-    @CommandLine.Option(names = {"-a", "--table"}, description = "The table this operation should use", defaultValue = "keyvalue")
+    @CommandLine.Option(names = {"-a", "--table"}, description = "The table the operation should use", defaultValue = "keyvalue")
     String table;
 }

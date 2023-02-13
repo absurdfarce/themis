@@ -44,12 +44,15 @@ Each command includes detailed help, so this kind of thing might be useful:
 
 ```
 $ java -jar app/build/libs/app-all.jar insert --help
-Usage: themis insert [-hopt] [-c=<count>]
+Usage: themis insert [-hopt] [-a=<table>] [-c=<count>] [-k=<keyspace>]
+  -a, --table=<table>   The table the operation should use
   -c, --count=<count>   Number of records to insert
   -h, --help            Show this help and exit
-  -o, --origin          Execute the insertion against the origin
+  -k, --keyspace=<keyspace>
+                        The keyspace the operation should use
+  -o, --origin          Execute the operation against the origin
   -p, --proxy           Execute the insertion against the proxy
-  -t, --target          Execute the insertion against the target
+  -t, --target          Execute the operation against the target
 ```
 
 # Can You Give Me A More Complete Example?
