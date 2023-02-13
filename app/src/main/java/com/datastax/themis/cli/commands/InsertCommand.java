@@ -18,7 +18,7 @@ import java.util.Random;
 import java.util.concurrent.Callable;
 
 @CommandLine.Command()
-public class InsertCommand implements Callable<Integer> {
+public class InsertCommand extends AbstractCommand implements Callable<Integer> {
 
     private static final Logger logger = LoggerFactory.getLogger(InsertCommand.class);
 
@@ -26,15 +26,6 @@ public class InsertCommand implements Callable<Integer> {
     private static final int RANDOM_STRING_SIZE = 12;
 
     private Random random = new Random(System.currentTimeMillis());
-
-    @CommandLine.Option(names = {"-h", "--help"}, usageHelp = true, description = "Show this help and exit")
-    boolean help;
-
-    @CommandLine.Option(names = {"-o", "--origin"}, description = "Execute the insertion against the origin")
-    boolean origin;
-
-    @CommandLine.Option(names = {"-t", "--target"}, description = "Execute the insertion against the target")
-    boolean target;
 
     @CommandLine.Option(names = {"-p", "--proxy"}, description = "Execute the insertion against the proxy")
     boolean proxy;

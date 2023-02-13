@@ -14,18 +14,9 @@ import picocli.CommandLine;
 import java.util.concurrent.Callable;
 
 @CommandLine.Command()
-public class SchemaCommand implements Callable<Integer> {
+public class SchemaCommand extends AbstractCommand implements Callable<Integer> {
 
     private static final Logger logger = LoggerFactory.getLogger(SchemaCommand.class);
-
-    @CommandLine.Option(names = {"-h", "--help"}, usageHelp = true, description = "Show this help and exit")
-    boolean help;
-
-    @CommandLine.Option(names = {"-o", "--origin"}, description = "Create the schema on the origin")
-    boolean origin;
-
-    @CommandLine.Option(names = {"-t", "--target"}, description = "Create the schema on the target")
-    boolean target;
 
     private final ImmutableMap<ClusterName, Cluster> clusters;
 
