@@ -6,7 +6,6 @@ import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
 import com.datastax.oss.driver.api.querybuilder.insert.InsertInto;
 import com.datastax.oss.driver.api.querybuilder.relation.Relation;
 import com.datastax.oss.driver.api.querybuilder.select.Selector;
-import com.datastax.themis.Constants;
 import com.datastax.themis.cluster.Cluster;
 import com.datastax.themis.config.ClusterName;
 import com.google.common.collect.ImmutableMap;
@@ -16,9 +15,10 @@ import picocli.CommandLine;
 
 import java.util.Random;
 import java.util.concurrent.Callable;
+import java.util.function.Function;
 
 @CommandLine.Command()
-public class InsertCommand implements Callable<Integer> {
+public class InsertCommand extends AbstractCommand implements Callable<Integer> {
 
     private static final Logger logger = LoggerFactory.getLogger(InsertCommand.class);
 
@@ -26,15 +26,6 @@ public class InsertCommand implements Callable<Integer> {
     private static final int RANDOM_STRING_SIZE = 12;
 
     private Random random = new Random(System.currentTimeMillis());
-
-    @CommandLine.Option(names = {"-h", "--help"}, usageHelp = true, description = "Show this help and exit")
-    boolean help;
-
-    @CommandLine.Option(names = {"-o", "--origin"}, description = "Execute the insertion against the origin")
-    boolean origin;
-
-    @CommandLine.Option(names = {"-t", "--target"}, description = "Execute the insertion against the target")
-    boolean target;
 
     @CommandLine.Option(names = {"-p", "--proxy"}, description = "Execute the insertion against the proxy")
     boolean proxy;
@@ -44,16 +35,6 @@ public class InsertCommand implements Callable<Integer> {
 
     private final ImmutableMap<ClusterName, Cluster> clusters;
 
-    /* Safe to re-use only because we're resetting values on the same columns each time and not alterting anything more substantive */
-    private final InsertInto insertBuilder =
-            QueryBuilder.insertInto(Constants.DEFAULT_KEYSPACE, Constants.DEFAULT_TABLE);
-
-    private final Statement maxQueryStmt =
-            QueryBuilder.selectFrom(Constants.DEFAULT_KEYSPACE, Constants.DEFAULT_TABLE)
-            .function("max", Selector.column("key"))
-                    .where(Relation.column("app").isEqualTo(QueryBuilder.literal("themis")))
-            .build();
-
     public InsertCommand(ImmutableMap<ClusterName, Cluster> clusters) {
         this.clusters = clusters;
     }
@@ -61,39 +42,43 @@ public class InsertCommand implements Callable<Integer> {
     @Override
     public Integer call() throws Exception {
 
+        /* Safe to re-use only because we're resetting values on the same columns each time and not altering anything more substantive */
+        InsertInto insertBuilder =
+                QueryBuilder.insertInto(this.keyspace, this.table);
+
+        Statement maxQueryStmt =
+                QueryBuilder.selectFrom(this.keyspace, this.table)
+                        .function("max", Selector.column("key"))
+                        .where(Relation.column("app").isEqualTo(QueryBuilder.literal("themis")))
+                        .build();
+
+        /* My kingdom for real partial application */
+        Function<ClusterName, Boolean> insertFn = (ClusterName clusterName) -> {
+            return insertIntoCluster(clusterName, insertBuilder, maxQueryStmt);
+        };
+
         boolean success = true;
         if (origin)
-            success = success & insertIntoCluster(ClusterName.ORIGIN);
+            success = success & insertFn.apply(ClusterName.ORIGIN);
         if (target)
-            success = success & insertIntoCluster(ClusterName.TARGET);
+            success = success & insertFn.apply(ClusterName.TARGET);
         if (proxy)
-            success = success & insertIntoCluster(ClusterName.PROXY);
+            success = success & insertFn.apply(ClusterName.PROXY);
         return success ? 0 : 1;
     }
 
-    private String buildRandomString(int length) {
-
-        /* Printable ASCII chars run from 33 through 126 (decimal) */
-        return this.random.ints(length, 33, 127)
-                .collect(
-                        StringBuilder::new,
-                        (sb,cp) -> sb.appendCodePoint(cp),
-                        StringBuilder::append)
-                .toString();
-    }
-
-    private boolean insertIntoCluster(ClusterName name) {
+    private boolean insertIntoCluster(ClusterName name, InsertInto insertBuilder, Statement maxQueryStmt) {
 
         System.out.println(String.format("Inserting %d new rows into cluster %s", this.count, name));
 
         try {
 
-            ResultSet maxRs = this.clusters.get(name).getSession().execute(this.maxQueryStmt);
+            ResultSet maxRs = this.clusters.get(name).getSession().execute(maxQueryStmt);
             int currentMax = maxRs.iterator().next().getInt(0);
 
             for (int i = currentMax + 1; i <= currentMax + this.count; ++i) {
                 this.clusters.get(name).getSession().execute(
-                        this.insertBuilder
+                        insertBuilder
                                 .value("key", QueryBuilder.literal(i))
                                 .value("value",QueryBuilder.literal(buildRandomString(RANDOM_STRING_SIZE)))
                                 .value("app", QueryBuilder.literal("themis"))
@@ -107,5 +92,16 @@ public class InsertCommand implements Callable<Integer> {
             System.out.println("Error inserting records, consult the log for details");
             return false;
         }
+    }
+
+    private String buildRandomString(int length) {
+
+        /* Printable ASCII chars run from 33 through 126 (decimal) */
+        return this.random.ints(length, 33, 127)
+                .collect(
+                        StringBuilder::new,
+                        (sb,cp) -> sb.appendCodePoint(cp),
+                        StringBuilder::append)
+                .toString();
     }
 }

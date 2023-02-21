@@ -5,7 +5,6 @@ import com.datastax.oss.driver.api.core.cql.Statement;
 import com.datastax.oss.driver.api.core.metadata.schema.ClusteringOrder;
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
 import com.datastax.oss.driver.api.querybuilder.relation.Relation;
-import com.datastax.themis.Constants;
 import com.datastax.themis.cluster.Cluster;
 import com.datastax.themis.config.ClusterName;
 import com.google.common.collect.ImmutableMap;
@@ -14,20 +13,12 @@ import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
 import java.util.concurrent.Callable;
+import java.util.function.Function;
 
 @CommandLine.Command()
-public class QueryCommand implements Callable<Integer> {
+public class QueryCommand extends AbstractCommand implements Callable<Integer> {
 
     private static final Logger logger = LoggerFactory.getLogger(QueryCommand.class);
-
-    @CommandLine.Option(names = {"-h", "--help"}, usageHelp = true, description = "Show this help and exit")
-    boolean help;
-
-    @CommandLine.Option(names = {"-o", "--origin"}, description = "Execute the query against the origin")
-    boolean origin;
-
-    @CommandLine.Option(names = {"-t", "--target"}, description = "Execute the query against the target")
-    boolean target;
 
     @CommandLine.Option(names = {"-p", "--proxy"}, description = "Execute the query against the proxy")
     boolean proxy;
@@ -44,22 +35,24 @@ public class QueryCommand implements Callable<Integer> {
     @Override
     public Integer call() throws Exception {
 
-        /* Note that (unlike most of the other commands) this Statement relies on values passed in via picocli... so we
-        * can't declare it as a constant field of this class */
-        Statement insertStmt = QueryBuilder.selectFrom(Constants.DEFAULT_KEYSPACE, Constants.DEFAULT_TABLE)
+        Statement insertStmt = QueryBuilder.selectFrom(this.keyspace, this.table)
                 .all()
                 .where(Relation.column("app").isEqualTo(QueryBuilder.literal("themis")))
                 .orderBy("key", ClusteringOrder.DESC)
                 .limit(this.limit)
                 .build();
 
+        Function<ClusterName, Boolean> queryFn = (ClusterName clusterName) -> {
+            return queryCluster(clusterName, insertStmt);
+        };
+
         boolean success = true;
         if (origin)
-            success = success & queryCluster(ClusterName.ORIGIN, insertStmt);
+            success = success & queryFn.apply(ClusterName.ORIGIN);
         if (target)
-            success = success & queryCluster(ClusterName.TARGET, insertStmt);
+            success = success & queryFn.apply(ClusterName.TARGET);
         if (proxy)
-            success = success & queryCluster(ClusterName.PROXY, insertStmt);
+            success = success & queryFn.apply(ClusterName.PROXY);
         return success ? 0 : 1;
     }
 
