@@ -33,11 +33,11 @@ public class ClusterFactory {
     throws ThemisException {
 
         DefaultCluster.Builder builder = DefaultCluster.builder(name.name());
-        getValidatedAddress(name, clusterConfig).ifPresent(builder::address);
-        getValidatedPort(name, clusterConfig).ifPresent(builder::port);
-        getValidatedString(name, ClusterConfigKey.LOCALDC, clusterConfig).ifPresent(builder::localDc);
-        getValidatedString(name, ClusterConfigKey.USERNAME, clusterConfig).ifPresent(builder::username);
-        getValidatedString(name, ClusterConfigKey.PASSWORD, clusterConfig).ifPresent(builder::password);
+        getConfigAddress(name, clusterConfig).ifPresent(builder::address);
+        getConfigPort(name, clusterConfig).ifPresent(builder::port);
+        getConfigString(name, ClusterConfigKey.LOCALDC, clusterConfig).ifPresent(builder::localDc);
+        getConfigString(name, ClusterConfigKey.USERNAME, clusterConfig).ifPresent(builder::username);
+        getConfigString(name, ClusterConfigKey.PASSWORD, clusterConfig).ifPresent(builder::password);
         return builder.build();
     }
 
@@ -45,9 +45,9 @@ public class ClusterFactory {
     throws ThemisException {
 
         AstraCluster.Builder builder = AstraCluster.builder(name.name());
-        getValidatedScb(name, clusterConfig).ifPresent(builder::scb);
-        getValidatedString(name, ClusterConfigKey.USERNAME, clusterConfig).ifPresent(builder::username);
-        getValidatedString(name, ClusterConfigKey.PASSWORD, clusterConfig).ifPresent(builder::password);
+        getConfigSCB(name, clusterConfig).ifPresent(builder::scb);
+        getConfigString(name, ClusterConfigKey.USERNAME, clusterConfig).ifPresent(builder::username);
+        getConfigString(name, ClusterConfigKey.PASSWORD, clusterConfig).ifPresent(builder::password);
         return builder.build();
     }
 
@@ -55,7 +55,7 @@ public class ClusterFactory {
         return input.entrySet().stream().collect(ImmutableMap.toImmutableMap(e -> ClusterConfigKey.valueOf(e.getKey().toUpperCase()), e -> e.getValue()));
     }
 
-    private static Optional<Object> getValidatedNonNullObject(ClusterName name, ClusterConfigKey key, ImmutableMap<ClusterConfigKey, ?> config)
+    private static Optional<Object> getConfigObject(ClusterName name, ClusterConfigKey key, ImmutableMap<ClusterConfigKey, ?> config)
             throws ThemisException {
 
         if (! config.containsKey(key))
@@ -66,10 +66,10 @@ public class ClusterFactory {
         return Optional.of(obj);
     }
 
-    private static Optional<String> getValidatedString(ClusterName name, ClusterConfigKey key, ImmutableMap<ClusterConfigKey, ?> config)
+    private static Optional<String> getConfigString(ClusterName name, ClusterConfigKey key, ImmutableMap<ClusterConfigKey, ?> config)
             throws ThemisException {
 
-        Optional<?> option = getValidatedNonNullObject(name, key, config);
+        Optional<?> option = getConfigObject(name, key, config);
         if (option.isEmpty())
             return Optional.empty();
         Object obj = option.get();
@@ -81,10 +81,10 @@ public class ClusterFactory {
         return Optional.of(rv);
     }
 
-    private static Optional<InetAddress> getValidatedAddress(ClusterName name, ImmutableMap<ClusterConfigKey, ?> config)
+    private static Optional<InetAddress> getConfigAddress(ClusterName name, ImmutableMap<ClusterConfigKey, ?> config)
             throws ThemisException {
 
-        Optional<String> addressOption = getValidatedString(name, ClusterConfigKey.ADDRESS, config);
+        Optional<String> addressOption = getConfigString(name, ClusterConfigKey.ADDRESS, config);
         if (addressOption.isEmpty())
             return Optional.empty();
         try { return Optional.of(InetAddress.getByName(addressOption.get())); }
@@ -93,10 +93,10 @@ public class ClusterFactory {
         }
     }
 
-    private static Optional<Integer> getValidatedPort(ClusterName name, ImmutableMap<ClusterConfigKey, ?> config)
+    private static Optional<Integer> getConfigPort(ClusterName name, ImmutableMap<ClusterConfigKey, ?> config)
             throws ThemisException {
 
-        Optional<?> option = getValidatedNonNullObject(name, ClusterConfigKey.PORT, config);
+        Optional<?> option = getConfigObject(name, ClusterConfigKey.PORT, config);
         if (option.isEmpty())
             return Optional.empty();
         Object obj = option.get();
@@ -105,10 +105,10 @@ public class ClusterFactory {
         return Optional.of((Integer)obj);
     }
 
-    private static Optional<Path> getValidatedScb(ClusterName name, ImmutableMap<ClusterConfigKey, ?> config)
+    private static Optional<Path> getConfigSCB(ClusterName name, ImmutableMap<ClusterConfigKey, ?> config)
             throws ThemisException {
 
-        Optional<String> scbOption = getValidatedString(name, ClusterConfigKey.SCB, config);
+        Optional<String> scbOption = getConfigString(name, ClusterConfigKey.SCB, config);
         /* Optional.map() would be preferred here but we're leveraging side effects (i.e. exceptions) to notify the top-level
          * CLI... and that doesn't play nice with map() + closures */
         if (scbOption.isEmpty())
