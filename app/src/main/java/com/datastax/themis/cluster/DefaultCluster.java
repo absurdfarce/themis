@@ -1,14 +1,12 @@
 package com.datastax.themis.cluster;
 
 import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 import com.datastax.themis.config.ClusterConfig;
-import com.datastax.themis.session.SessionFactory;
 
-import java.util.concurrent.atomic.AtomicReference;
+import java.net.InetSocketAddress;
 
-public class DefaultCluster implements Cluster {
-
-    private final AtomicReference<CqlSession> sessionRef = new AtomicReference<>(null);
+public class DefaultCluster extends Cluster {
 
     private final String name;
     private final ClusterConfig config;
@@ -18,30 +16,17 @@ public class DefaultCluster implements Cluster {
         this.config = config;
     }
 
-    @Override
-    public boolean isAstra() { return !this.config.getScb().isEmpty(); }
+    CqlSession buildSession() {
 
-    @Override
-    public CqlSession getSession() {
-
-        sessionRef.compareAndSet(null, buildSession());
-        return sessionRef.get();
-    }
-
-    private CqlSession buildSession() {
-        if (isAstra()) {
-            return SessionFactory.build(
-                    this.config.getScb().get(),
-                    this.config.getUsername().get(),
-                    this.config.getPassword().get());
-        }
-        else {
-            return SessionFactory.build(
-                    this.config.getAddress().get(),
-                    this.config.getPort().get(),
-                    this.config.getLocalDc().get(),
-                    this.config.getUsername(),
-                    this.config.getPassword());
-        }
+        CqlSessionBuilder builder = CqlSession
+                .builder()
+                .addContactPoint(new InetSocketAddress(this.config.getAddress().get(), this.config.getPort().get()))
+                .withLocalDatacenter(this.config.getLocalDc().get());
+        this.config.getUsername().ifPresent(u -> {
+            this.config.getPassword().ifPresent(p -> {
+                builder.withAuthCredentials(u,p);
+            });
+        });
+        return builder.build();
     }
 }
