@@ -32,7 +32,7 @@ public class ClusterFactory {
     private static DefaultCluster buildDefaultCluster(ClusterName name, ImmutableMap<ClusterConfigKey, ?> clusterConfig)
     throws ThemisException {
 
-        DefaultCluster.Builder builder = DefaultCluster.builder();
+        DefaultCluster.Builder builder = DefaultCluster.builder(name.name());
         getValidatedAddress(name, clusterConfig).ifPresent(builder::address);
         getValidatedPort(name, clusterConfig).ifPresent(builder::port);
         getValidatedString(name, ClusterConfigKey.LOCALDC, clusterConfig).ifPresent(builder::localDc);
@@ -44,7 +44,7 @@ public class ClusterFactory {
     private static AstraCluster buildAstraCluster(ClusterName name, ImmutableMap<ClusterConfigKey, ?> clusterConfig)
     throws ThemisException {
 
-        AstraCluster.Builder builder = AstraCluster.builder();
+        AstraCluster.Builder builder = AstraCluster.builder(name.name());
         getValidatedScb(name, clusterConfig).ifPresent(builder::scb);
         getValidatedString(name, ClusterConfigKey.USERNAME, clusterConfig).ifPresent(builder::username);
         getValidatedString(name, ClusterConfigKey.PASSWORD, clusterConfig).ifPresent(builder::password);

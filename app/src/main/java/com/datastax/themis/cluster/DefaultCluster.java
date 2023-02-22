@@ -28,7 +28,7 @@ public class DefaultCluster extends Cluster {
         this.password = password;
     }
 
-    public static DefaultCluster.Builder builder() { return new DefaultCluster.Builder(); }
+    public static DefaultCluster.Builder builder(String name) { return new DefaultCluster.Builder(name); }
 
     CqlSession buildSession() {
 
@@ -46,11 +46,17 @@ public class DefaultCluster extends Cluster {
 
     public static class Builder {
 
+        private final String name;
+
         private Optional<InetAddress> address = Optional.empty();
         private Optional<Integer> port = Optional.empty();
         private Optional<String> localDc = Optional.empty();
         private Optional<String> username = Optional.empty();
         private Optional<String> password = Optional.empty();
+
+        public Builder(String name) {
+            this.name = name;
+        }
 
         public Builder address(InetAddress address) {
             this.address = Optional.of(address);
@@ -77,29 +83,24 @@ public class DefaultCluster extends Cluster {
             return this;
         }
 
-        private boolean validate() {
+        private void validate()
+        throws ThemisException {
 
             if (this.address.isEmpty()) {
-                logger.error("Address is required for DefaultCluster");
-                return false;
+                throw new ThemisException("Address is required for DefaultCluster %s", this.name);
             }
             if (this.port.isEmpty()) {
-                logger.error("Port is required for DefaultCluster");
-                return false;
+                throw new ThemisException("Port is required for DefaultCluster", this.name);
             }
             if (this.localDc.isEmpty()) {
-                logger.error("Local DC is required for DefaultCluster");
-                return false;
+                throw new ThemisException("Local DC is required for DefaultCluster", this.name);
             }
-            return true;
         }
 
         public DefaultCluster build()
         throws ThemisException {
 
-            if (! validate()) {
-                throw new ThemisException("Could not validate configs for default cluster, consult the log for details");
-            }
+            validate();
             return new DefaultCluster(this.address.get(),this.port.get(), this.localDc.get(), this.username, this.password);
         }
     }

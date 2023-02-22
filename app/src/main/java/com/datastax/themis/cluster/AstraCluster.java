@@ -22,7 +22,7 @@ public class AstraCluster extends Cluster {
         this.password = password;
     }
 
-    public static AstraCluster.Builder builder() { return new AstraCluster.Builder(); }
+    public static AstraCluster.Builder builder(String name) { return new AstraCluster.Builder(name); }
 
     CqlSession buildSession() {
         return CqlSession
@@ -34,9 +34,15 @@ public class AstraCluster extends Cluster {
 
     public static class Builder {
 
+        private final String name;
+
         private Optional<Path> scb = Optional.empty();
         private Optional<String> username = Optional.empty();
         private Optional<String> password = Optional.empty();
+
+        public Builder(String name) {
+            this.name = name;
+        }
 
         public Builder scb(Path scb) {
             this.scb = Optional.of(scb);
@@ -53,29 +59,24 @@ public class AstraCluster extends Cluster {
             return this;
         }
 
-        private boolean validate() {
+        private void validate()
+        throws ThemisException {
 
             if (this.scb.isEmpty()) {
-                logger.error("Secure connect bundle (SCB) is required for DefaultCluster");
-                return false;
+                throw new ThemisException("Secure connect bundle (SCB) is required for DefaultCluster %s", this.name);
             }
             if (this.username.isEmpty()) {
-                logger.error("Username (Astra client ID) is required for AstraCluster");
-                return false;
+                throw new ThemisException("Username (Astra client ID) is required for AstraCluster %s", this.name);
             }
             if (this.password.isEmpty()) {
-                logger.error("Password (Astra secret) is required for AstraCluster");
-                return false;
+                throw new ThemisException("Password (Astra secret) is required for AstraCluster %s", this.name);
             }
-            return true;
         }
 
         public AstraCluster build()
-                throws ThemisException {
+        throws ThemisException {
 
-            if (! validate()) {
-                throw new ThemisException("Could not validate configs for Astra cluster, consult the log for details");
-            }
+            validate();
             return new AstraCluster(this.scb.get(),this.username.get(), this.password.get());
         }
     }
