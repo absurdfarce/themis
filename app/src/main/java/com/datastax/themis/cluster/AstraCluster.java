@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 import java.nio.file.Path;
 import java.util.Optional;
 
-public class AstraCluster {
+public class AstraCluster extends Cluster {
 
     private static Logger logger = LoggerFactory.getLogger(AstraCluster.class);
 
@@ -22,7 +22,7 @@ public class AstraCluster {
         this.password = password;
     }
 
-    public AstraCluster.Builder builder() { return new AstraCluster.Builder(); }
+    public static AstraCluster.Builder builder() { return new AstraCluster.Builder(); }
 
     CqlSession buildSession() {
         return CqlSession

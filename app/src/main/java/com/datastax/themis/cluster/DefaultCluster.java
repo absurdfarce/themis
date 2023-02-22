@@ -28,7 +28,7 @@ public class DefaultCluster extends Cluster {
         this.password = password;
     }
 
-    public Builder builder() { return new Builder(); }
+    public static DefaultCluster.Builder builder() { return new DefaultCluster.Builder(); }
 
     CqlSession buildSession() {
 
