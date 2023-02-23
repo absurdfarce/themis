@@ -2,26 +2,31 @@ package com.datastax.themis.cluster;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.CqlSessionBuilder;
+import com.datastax.oss.driver.internal.querybuilder.ImmutableCollections;
 import com.datastax.themis.ThemisException;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Streams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 public class DefaultCluster extends Cluster {
 
     private static Logger logger = LoggerFactory.getLogger(DefaultCluster.class);
 
-    private final InetAddress address;
+    private final List<InetAddress> addresses;
     private final int port;
     private final String localDc;
     private final Optional<String> username;
     private final Optional<String> password;
 
-    private DefaultCluster(InetAddress address, int port, String localDc, Optional<String> username, Optional<String> password) {
-        this.address = address;
+    private DefaultCluster(List<InetAddress> addresses, int port, String localDc, Optional<String> username, Optional<String> password) {
+        this.addresses = addresses;
         this.port = port;
         this.localDc = localDc;
         this.username = username;
@@ -34,7 +39,9 @@ public class DefaultCluster extends Cluster {
 
         CqlSessionBuilder builder = CqlSession
                 .builder()
-                .addContactPoint(new InetSocketAddress(this.address, this.port))
+                .addContactPoints(
+                        Streams.zip(this.addresses.stream(), Stream.generate(() -> this.port), (addr,port) -> new InetSocketAddress(addr,port))
+                                .collect(ImmutableList.toImmutableList()))
                 .withLocalDatacenter(this.localDc);
         this.username.ifPresent(u -> {
             this.password.ifPresent(p -> {
@@ -48,7 +55,7 @@ public class DefaultCluster extends Cluster {
 
         private final String name;
 
-        private Optional<InetAddress> address = Optional.empty();
+        private Optional<List<InetAddress>> addresses = Optional.empty();
         private Optional<Integer> port = Optional.empty();
         private Optional<String> localDc = Optional.empty();
         private Optional<String> username = Optional.empty();
@@ -58,8 +65,8 @@ public class DefaultCluster extends Cluster {
             this.name = name;
         }
 
-        public Builder address(InetAddress address) {
-            this.address = Optional.of(address);
+        public Builder addresses(List<InetAddress> addresses) {
+            this.addresses = Optional.of(addresses);
             return this;
         }
 
@@ -86,7 +93,7 @@ public class DefaultCluster extends Cluster {
         private void validate()
         throws ThemisException {
 
-            if (this.address.isEmpty()) {
+            if (this.addresses.isEmpty()) {
                 throw new ThemisException("Address is required for DefaultCluster %s", this.name);
             }
             if (this.port.isEmpty()) {
@@ -101,7 +108,7 @@ public class DefaultCluster extends Cluster {
         throws ThemisException {
 
             validate();
-            return new DefaultCluster(this.address.get(),this.port.get(), this.localDc.get(), this.username, this.password);
+            return new DefaultCluster(this.addresses.get(),this.port.get(), this.localDc.get(), this.username, this.password);
         }
     }
 }
