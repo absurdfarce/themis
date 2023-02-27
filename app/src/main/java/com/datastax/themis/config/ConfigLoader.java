@@ -21,7 +21,7 @@ public class ConfigLoader {
         ImmutableMap.Builder<ClusterName, Cluster> rvBuilder = ImmutableMap.builder();
         for (Map.Entry<String, Map<String, ?>> entry : data.entrySet()) {
 
-            ClusterName name = ClusterName.valueOf(entry.getKey());
+            ClusterName name = ClusterName.valueOf(entry.getKey().trim().toUpperCase());
             rvBuilder.put(
                     name,
                     ClusterFactory.buildCluster(name, entry.getValue()));
