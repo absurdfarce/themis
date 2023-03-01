@@ -33,10 +33,8 @@ public class InsertCommand extends AbstractCommand implements Callable<Integer> 
     @CommandLine.Option(names = {"-c", "--count"}, description = "Number of records to insert", defaultValue = "10")
     int count;
 
-    private final ImmutableMap<ClusterName, Cluster> clusters;
-
     public InsertCommand(ImmutableMap<ClusterName, Cluster> clusters) {
-        this.clusters = clusters;
+        super(clusters);
     }
 
     @Override

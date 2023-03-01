@@ -19,10 +19,8 @@ public class SchemaCommand extends AbstractCommand implements Callable<Integer> 
 
     private static final Logger logger = LoggerFactory.getLogger(SchemaCommand.class);
 
-    private final ImmutableMap<ClusterName, Cluster> clusters;
-
     public SchemaCommand(ImmutableMap<ClusterName, Cluster> clusters) {
-        this.clusters = clusters;
+        super(clusters);
     }
 
     @Override

@@ -26,16 +26,14 @@ public class QueryCommand extends AbstractCommand implements Callable<Integer> {
     @CommandLine.Option(names = {"-l", "--limit"}, description = "Limit the number of rows returned", defaultValue = "10")
     int limit;
 
-    private final ImmutableMap<ClusterName, Cluster> clusters;
-
     public QueryCommand(ImmutableMap<ClusterName, Cluster> clusters) {
-        this.clusters = clusters;
+        super(clusters);
     }
 
     @Override
     public Integer call() throws Exception {
 
-        Statement insertStmt = QueryBuilder.selectFrom(this.keyspace, this.table)
+        Statement queryStmt = QueryBuilder.selectFrom(this.keyspace, this.table)
                 .all()
                 .where(Relation.column("app").isEqualTo(QueryBuilder.literal("themis")))
                 .orderBy("key", ClusteringOrder.DESC)
@@ -43,7 +41,7 @@ public class QueryCommand extends AbstractCommand implements Callable<Integer> {
                 .build();
 
         Function<ClusterName, Boolean> queryFn = (ClusterName clusterName) -> {
-            return queryCluster(clusterName, insertStmt);
+            return queryCluster(clusterName, queryStmt);
         };
 
         boolean success = true;
@@ -56,12 +54,12 @@ public class QueryCommand extends AbstractCommand implements Callable<Integer> {
         return success ? 0 : 1;
     }
 
-    private boolean queryCluster(ClusterName name, Statement insertStmt) {
+    private boolean queryCluster(ClusterName name, Statement queryStmt) {
 
         System.out.println(String.format("Querying cluster %s", name));
         try {
 
-            for (Row row : this.clusters.get(name).getSession().execute(insertStmt)) {
+            for (Row row : this.clusters.get(name).getSession().execute(queryStmt)) {
                 System.out.println(String.format("%d => %s", row.getInt("key"), row.getString("value")));
             }
 
