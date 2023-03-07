@@ -3,6 +3,7 @@ package com.datastax.themis.cli.commands;
 import com.datastax.oss.driver.api.core.cql.Statement;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
+import com.datastax.themis.cluster.AstraCluster;
 import com.datastax.themis.cluster.Cluster;
 import com.datastax.themis.config.ClusterName;
 import com.google.common.collect.ImmutableMap;
@@ -18,10 +19,8 @@ public class SchemaCommand extends AbstractCommand implements Callable<Integer> 
 
     private static final Logger logger = LoggerFactory.getLogger(SchemaCommand.class);
 
-    private final ImmutableMap<ClusterName, Cluster> clusters;
-
     public SchemaCommand(ImmutableMap<ClusterName, Cluster> clusters) {
-        this.clusters = clusters;
+        super(clusters);
     }
 
     @Override
@@ -60,7 +59,7 @@ public class SchemaCommand extends AbstractCommand implements Callable<Integer> 
         try {
 
             Cluster cluster = this.clusters.get(name);
-            if (cluster.isAstra())
+            if (cluster instanceof AstraCluster)
                 System.out.println(String.format("Cluster %s is an Astra cluster, skipping keyspace creation (Astra keyspaces must be created through the Astra UI)", name));
             else
                 cluster.getSession().execute(keyspaceCreateStmt);

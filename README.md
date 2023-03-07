@@ -1,5 +1,5 @@
 # Themis
-A tool to make sure the scales [stay balanced](https://en.wikipedia.org/wiki/Themis)
+A tool to make sure the scales [stay balanced](https://en.wikipedia.org/wiki/Themis).
 
 # How Do You Build It
 Build is implemented via [Gradle](https://gradle.org/).  You'll want to build a shadow JAR unless you want to manage dependencies some other way:
@@ -7,18 +7,31 @@ Build is implemented via [Gradle](https://gradle.org/).  You'll want to build a 
 > ./gradlew shadowJar
 
 # Overview
-Themis is intended to simplify the process of querying a pair of Cassandra servers fronted by a CQL-compatible proxy which might be sending reads or writes to one or both of those clusters. The goal is to validate proper functioning of the proxy by providing an interactive way to write random sample data to one of those endpoints (either of the servers or the proxy directly) and then query those same endpoints.
+Themis is intended to simplify the process of querying a pair of Cassandra cluster fronted by a CQL-compatible proxy, which might be sending reads or writes to one or both of those clusters. 
 
 In this example we will be using the [ZDM Proxy](https://github.com/datastax/zdm-proxy), which routes all requests as follows:
 - Writes are always sent to both Origin and Target.
 - Reads are sent to either Origin or Target, depending on how the proxy is configured.
 
-For more information on the ZDM Proxy, please refer to its README and [official documentation](https://docs.datastax.com/en/astra-serverless/docs/migrate/introduction.html)
+For more information on the ZDM Proxy, please refer to its README and [official documentation](https://docs.datastax.com/en/astra-serverless/docs/migrate/introduction.html).
 
-# How Is It Configured?
+Themis's goal is to validate proper functioning of the proxy by providing an interactive way to write random sample data directly to one of those endpoints (Origin, Target or the proxy directly) and then query those same endpoints. For this reason, Themis will open connections as follows:
+* Directly to the Origin cluster.
+* To the proxy deployment (which in turn will connect to Origin and Target based on its configuration).
+* Directly to the Target cluster.
+
+This allows Themis to write and read data directly from any of these endpoints, enabling you to compare results and verify how the proxy is routing your requests. The examples explained later in this document will show you how this works in practice.
+
+In the examples that follow, we will be using a [DataStax AstraDB](https://astra.datastax.com/) cluster as our Target. For more details on AstraDB, please see its [documentation](https://docs.datastax.com/en/astra-serverless/docs/index.html).
+
+# How Is Themis Configured?
 Via a YAML file called `.themis.yaml` and placed in your home directory.
 
-Here's a sample for a test where the Origin cluster and the ZDM Proxy run locally, and Target is an AstraDB cluster:
+In this file we have to specify three sets of connection parameters: one for the Origin cluster, one for the Target cluster and a third one for the proxy deployment. The exact parameters to specify vary depending on whether the connection is to a regular cluster or an AstraDB one, and on which cluster(s) require authentication.
+
+If the configuration for a cluster contains an `scb` key it is assumed to represent an AstraDB cluster: in this case only the `username` and `password` keys will be used in addition to the secure connect bundle identified by `scb`, which contains all the other AstraDB connection parameters.
+
+Starting from the simplest case, here's an example where the Origin cluster and the ZDM Proxy run locally, and Target is an AstraDB cluster:
 
 ```
 origin:
@@ -37,15 +50,19 @@ proxy:
   password: my_astra_secret
 ```
 
-In this case my Origin cluster is a local Cassandra install while my Target is an instance on [DataStax AstraDB](https://astra.datastax.com/).  The proxy is also installed locally but since it must proxy to AstraDB as well as my local instance Astra credentials are required here as well.
+In this case Origin is a single Cassandra node running locally and does not require authentication. The proxy is also installed locally, but since it must proxy to AstraDB (which does require authentication) the AstraDB credentials are required here as well.
 
-If your config contains an "scb" key it's assumed to represent an AstraDB-managed instance; in this case only the "username" and "password" keys will be used in addition to the secure connect bundle identified by "scb".
+If you are using a multi-node cluster, you can specify multiple contact points simply by passing them as a list. This also applies to proxy deployments with multiple proxy instances. For example, let's consider a more "production-like" deployment. In this case:
+* The Origin cluster and the ZDM proxy run on dedicated machines, and we have to specify their private IP addresses.
+* There are three contact points for Origin, listening on port 9042. Also, Origin requires authentication, so we have to pass valid credentials for it.
+* Target is still an AstraDB cluster, which always requires authentication. You do not need to specify addresses or ports for AstraDB clusters - all this is implicitly contained in the Secure Connect Bundle.
+* There are three proxy instances, also listening on port 9042. The credentials passed to connect to the proxy are the same as for Target.
 
-Here's another example to connect to a more general deployment, where the Origin cluster and the ZDM proxy run on dedicated instances and Target is still an AstraDB cluster:
+The configuration file would look like this:
 
 ```
 origin:
-  address: 191.100.20.210
+  address: [192.168.20.45, 192.168.21.63, 192.168.22.184]
   port: 9042
   localDc: my_origin_dc
   username: my_origin_username
@@ -55,38 +72,16 @@ target:
   username: my_astra_clientid
   password: my_astra_secret
 proxy:
-  address: 172.13.10.78
+  address: [172.18.10.37, 172.18.11.104, 172.18.12.91]
   port: 9042
   localDc: my_origin_dc  
   username: my_astra_clientid
   password: my_astra_secret
 ```
 
-Note that in this case Origin has internal authentication enabled, so I need to pass valid credentials for it. Also, the proxy's local datacenter name is the same as Origin's local datacenter.
+For more information on how to connect a client application to the ZDM Proxy, please refer to [this documentation page](https://docs.datastax.com/en/astra-serverless/docs/migrate/connect-clients-to-proxy.html).
 
-And finally, here is an example where neither cluster is an AstraDB cluster and both clusters require authentication:
-```
-origin:
-  address: 191.100.20.210
-  port: 9042
-  localDc: my_origin_dc
-  username: my_origin_username
-  password: my_origin_password
-target:
-  address: 191.200.35.170
-  port: 9042
-  localDc: some_other_dc
-  username: my_target_username
-  password: my_target_password
-proxy:
-  address: 172.13.10.78
-  port: 9042
-  localDc: my_origin_dc  
-  username: my_target_username
-  password: my_origin_password
-```
-
-# What Can It Do?
+# What Can Themis Do?
 There are three commands available at the moment:
 
 * schema - Creates the mock schema on the specified server

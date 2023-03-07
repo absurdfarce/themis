@@ -2,9 +2,17 @@ package com.datastax.themis.cluster;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 
-public interface Cluster {
+import java.util.concurrent.atomic.AtomicReference;
 
-    public boolean isAstra();
+public abstract class Cluster {
 
-    public CqlSession getSession();
+    private final AtomicReference<CqlSession> sessionRef = new AtomicReference<>(null);
+
+    abstract CqlSession buildSession();
+
+    public CqlSession getSession() {
+
+        sessionRef.compareAndSet(null, buildSession());
+        return sessionRef.get();
+    }
 }

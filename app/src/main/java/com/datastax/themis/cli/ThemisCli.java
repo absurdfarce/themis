@@ -1,6 +1,5 @@
 package com.datastax.themis.cli;
 
-import com.datastax.themis.ThemisException;
 import com.datastax.themis.cli.commands.InsertCommand;
 import com.datastax.themis.cli.commands.QueryCommand;
 import com.datastax.themis.cli.commands.SchemaCommand;
@@ -14,7 +13,6 @@ import picocli.CommandLine;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.util.concurrent.Callable;
 
 public class ThemisCli {
@@ -23,7 +21,7 @@ public class ThemisCli {
 
     public static final String THEMIS_CONFIG = ".themis.yaml";
 
-    private static ImmutableMap<ClusterName, Cluster> loadConfig() {
+    private static ImmutableMap<ClusterName, Cluster> loadClusters() {
         File configFile = new File(System.getProperty("user.home"), THEMIS_CONFIG);
         if (! configFile.exists()) {
             System.out.println(String.format("Expected Themis config %s doesn't exist", configFile.getAbsolutePath()));
@@ -39,17 +37,12 @@ public class ThemisCli {
         }
 
         try {
-            return ConfigLoader.load(new FileInputStream(configFile));
+            return ConfigLoader.loadAllClusters(new FileInputStream(configFile));
         }
-        catch (ThemisException te) {
-            logger.error("Exception processing YAML config", te);
+        catch (Exception e) {
+            logger.error("Exception processing YAML config", e);
             System.out.println("YAML config could not be parsed, consult the log for details");
             System.exit(1);
-        }
-        // We already checked for this above but... you know... type system...
-        catch (FileNotFoundException fnfe) {
-            System.out.println(String.format("VERY unexpected error", fnfe));
-            System.exit(2);
         }
 
         /* Here to make IDEs happy */
@@ -58,7 +51,7 @@ public class ThemisCli {
 
     public static void main(String[] args) {
 
-        ImmutableMap<ClusterName, Cluster> clusters = loadConfig();
+        ImmutableMap<ClusterName, Cluster> clusters = loadClusters();
 
         CommandLine cli = new CommandLine(new ThemisRoot())
                 .addSubcommand("query", new QueryCommand(clusters))
