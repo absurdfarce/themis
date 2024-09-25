@@ -2,6 +2,7 @@
 A tool to make sure the scales [stay balanced](https://en.wikipedia.org/wiki/Themis).
 
 THIS IS ONLY A TEST!
+THIS IS ALSO A TEST!
 
 # How Do You Build It
 Build is implemented via [Gradle](https://gradle.org/).  You'll want to build a shadow JAR unless you want to manage dependencies some other way:
